@@ -1,4 +1,4 @@
-FROM vllm/vllm-openai:v0.7.0
+FROM vllm/vllm-openai:latest
 
 ARG model_id
 

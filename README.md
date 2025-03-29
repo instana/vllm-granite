@@ -3,7 +3,9 @@ Artifacts to build and deploy a container with vLLM and granite, exposed via RES
 
 ##  vLLM container with IBM Granite
 
-The following command builds a vLLM container image which pulls Granite models from HuggingFace. It uses the official vLLM image as base.
+The following command builds a vLLM container image which pulls Granite models from HuggingFace. It uses the [official vLLM image](https://hub.docker.com/r/vllm/vllm-openai/tags) as base.  
+
+Please note: the `Dockerfile` uses the `latest` tag, which points to the most up-to-date tag available.  Internally we have tested with version `v0.7.0`.
 
 ```
 docker buildx build --tag vllm_with_model -f Dockerfile.model --build-arg model_id=ibm-granite/granite-3.1-8b-instruct .
