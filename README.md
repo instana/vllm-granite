@@ -1,7 +1,7 @@
 # vllm-granite
 Artifacts to build and deploy a container with vLLM and granite, exposed via REST APIs
 
-##  vLLM container with IBM Granite
+##  <a id="vllm-with-granite">vLLM container with IBM Granite</a>
 
 The following command builds a vLLM container image which pulls Granite models from HuggingFace. It uses the [official vLLM image](https://hub.docker.com/r/vllm/vllm-openai/tags) as base.  
 
@@ -29,7 +29,7 @@ reference Supported API endpoints listed here: https://docs.vllm.ai/en/latest/se
   - Embeddings API (/v1/embeddings)
 
 -----
-# OCP Cluster
+# OCP Cluster for Self-Hosting LLM with vLLM
 
 ## 1. Cluster Setup
 
@@ -86,8 +86,9 @@ For the cluster to identify and use the NVIDIA GPUs, you need to install a few o
       oc login <cluster_api_url_and_port> -u <username> -p <password>
       ```
 2. Update and apply the pre-packaged sample YAML file.
-   - **NOTE:** If you are using the offline vLLM version, first build a Docker image.
-     - Please see the [additional instructions](#offline-dockerfile) in the appendix.
+   - **NOTE:** For AirGap or OnPrem environments:
+     - If you are planning to use vLLM images shipped with previously downloaded models, follow these [instructions](#vllm-with-granite).
+     - Then follow Step 6 in these [additional instructions](#build-image-in-ocp).
    - Make sure to update any values to match your own specifications and requirements. There are a few `<fields>` that require your custom input.
    - To apply a YAML file:
      ```
@@ -142,7 +143,7 @@ For the cluster to identify and use the NVIDIA GPUs, you need to install a few o
 
 ## 4. Grafana Dashboard for vLLM metrics
 
-[Setup instructions](#grafana-prometheus) are available in the appendix.
+[Setup instructions](#grafana-prometheus).
 
 1. Visit the Grafana URL and login. Get the credentials from the setup.
    - You can find the URL in the web console.
@@ -157,9 +158,9 @@ For the cluster to identify and use the NVIDIA GPUs, you need to install a few o
 -----
 ## <a id="appendix">Appendix</a>
 
-### <a id="offline-dockerfile">A. Building the Dockerfile for offline vLLM</a>
+### <a id="build-image-in-ocp">A. Building the vLLM Docker image within OCP</a>
 
-If you already have a published image, skip over to Step 6.
+If you already have an available image, skip over to Step 6.
 
 1. Change directory to the `Dockerfile` via the terminal.
     ```
@@ -192,7 +193,7 @@ If you already have a published image, skip over to Step 6.
     # Image name should be in the format: "image-registry.openshift-image-registry.svc:5000/<namespace>/<config_name>"
     oc get imagestreams | grep <config_name>
     ```
-6. In your `Deployment` YAML, under the the `spec: template: spec:` section, update the image pointer to your image url 
+6. In the sample YAML, under the the `spec: template: spec:` section, update the image pointer to your image url 
     ```
     # YAML snippet. In the `spec: template: spec:`, add the following:
     containers:
