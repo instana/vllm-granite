@@ -88,7 +88,7 @@ For the cluster to identify and use the NVIDIA GPUs, you need to install a few o
       ```
       oc login <cluster_api_url_and_port> -u <username> -p <password>
       ```
-2. Update and apply the pre-packaged YAML file.
+2. Update and apply the pre-packaged sample YAML file.
    - **NOTE:** If you are using the offline vLLM version, first build a Docker image.
      - Please see the [additional instructions](#offline-dockerfile) in the appendix.
    - Make sure to update any values to match your own specifications and requirements. There are a few `<fields>` that require your custom input.
