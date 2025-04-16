@@ -43,10 +43,7 @@ For the cluster to identify and use the NVIDIA GPUs, you need to install a few o
 
 1. [Node Discovery Feature Operator](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/specialized_hardware_and_driver_enablement/psap-node-feature-discovery-operator#creating-nfd-cr-web-console_psap-node-feature-discovery-operator)
 2. [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/install-gpu-ocp.html)
-3. (Optional) Grafana Operator
-   - This is for having a persistent dashboard with vLLM metrics.
-   - Please see the [instructions](#grafana-prometheus) in the appendix.
-4. Confirm that the NDF and NVIDIA Operators are installed and configured correctly.
+3. Confirm that the NDF and NVIDIA Operators are installed and configured correctly.
    - You can view this either via web console or CLI.
    - Check that each worker node with GPUs has the following labels:
      - `nvidia.com/gpu.present=true`
