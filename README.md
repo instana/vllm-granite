@@ -89,9 +89,9 @@ For the cluster to identify and use the NVIDIA GPUs, you need to install a few o
       oc login <cluster_api_url_and_port> -u <username> -p <password>
       ```
 2. Update and apply the pre-packaged YAML file.
-   - **NOTE:** If you are using the offline vLLM version, first build a Dockerfile.
-     - Please see the [instructions](#offline-dockerfile) in the appendix.
-   - Make any necessary naming or value changes to match your own requirements.
+   - **NOTE:** If you are using the offline vLLM version, first build a Docker image.
+     - Please see the [additional instructions](#offline-dockerfile) in the appendix.
+   - Make sure to update any values to match your own specifications and requirements. There are a few `<fields>` that require your custom input.
    - To apply a YAML file:
      ```
      oc apply -f <yaml_file>
@@ -161,6 +161,9 @@ For the cluster to identify and use the NVIDIA GPUs, you need to install a few o
 ## <a id="appendix">Appendix</a>
 
 ### <a id="offline-dockerfile">A. Building the Dockerfile for offline vLLM</a>
+
+If you already have a published image, skip over to Step 6.
+
 1. Change directory to the `Dockerfile` via the terminal.
     ```
     cd /path/to/Dockerfile
@@ -196,7 +199,7 @@ For the cluster to identify and use the NVIDIA GPUs, you need to install a few o
     ```
     # YAML snippet. In the `spec: template: spec:`, add the following:
     containers:
-      - name: <container_name>
+      - name: some_name
         image: image-registry.openshift-image-registry.svc:5000/<namespace>/<config_name>:latest
     ```
 
