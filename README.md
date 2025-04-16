@@ -209,15 +209,15 @@ If you already have a published image, skip over to Step 6.
 
 **NOTE:** This section may be different, depending on your setup. 
 
-Prometheus is enabled by default and will scrape metrics. However, it uses `openshift-user-workload-monitoring` to scrape custom user data, such as vLLM metrics. This can be confirmed in the cluster web console. 
-
-From the left-hand menu, select `Observe` -> `Metrics`. Then enter any vLLM metric as a query. From the resulting table, check under the `Prometheus` column. You should see `openshift-user-workload-monitoring`.
-
-This means your metrics are most likely being routed through Thanos Querier. Get the Thanos Querier route URL:
-  ```
-  oc get route thanos-querier -n openshift-monitoring
-  ```
-Copy/save this URL. You will need it later.
+1. Apply the `enable_monitoring.yaml` file.
+   ```
+   oc apply -f enable_monitoring.yaml
+   ```
+2. Get the Thanos Querier route URL:
+   ```
+   oc get route thanos-querier -n openshift-monitoring
+   ```
+3. Copy/save this URL. You will need it later.
 
 #### B.2. Grafana Dashboard Setup
 
