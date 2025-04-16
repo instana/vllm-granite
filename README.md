@@ -260,7 +260,7 @@ If you already have an available image, skip over to Step 6.
     oc create route edge grafana-route --service=<grafana_instance_name>-service --port=3000 --insecure-policy=Redirect -n openshift-operators
     ```
 
-### D. Miscellaneous Commands
+### C. Miscellaneous Commands
 ```
 # Checks the requests and limits of resources. Look for "nvidia.com/gpu" in the output for GPU resources.
 oc describe node <worker-node-with-gpu> | grep -A10 Allocated
