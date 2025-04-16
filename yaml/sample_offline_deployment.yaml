@@ -1,0 +1,170 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: vllm-offline
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: vllm-sv-off
+  namespace: vllm-offline
+  labels:
+    app: vllm-sv-off  
+spec:
+  ports:
+    - name: vllm-port-off
+      protocol: TCP
+      port: 8080
+      targetPort: vllm-port-off
+  type: ClusterIP
+  selector:
+    app: vllm-sv-off
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: vllm-sa-off
+  namespace: vllm-offline
+
+---
+kind: ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+metadata:
+  name: vllm-sm-off
+  namespace: vllm-offline
+  labels:
+    k8s-app: vllm-sm-off
+spec:
+  endpoints:
+    - interval: 30s
+      port: vllm-port-off
+      scheme: http
+  selector:
+    matchLabels:
+      app: vllm-sv-off
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: models-pvc-offline
+  namespace: vllm-offline
+spec:
+  storageClassName: rook-cephfs
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: vllm-sv-off-32
+  namespace: vllm-offline
+  labels:
+    app: vllm-sv-off
+    component: huggingface-vllm-offline
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vllm-sv-off
+      component: huggingface-vllm-offline
+  template:
+    metadata:
+      labels:
+        app: vllm-sv-off
+        component: huggingface-vllm-offline
+        placement: <gpu_model_name>
+    spec:
+      serviceAccountName: vllm-sa-off
+      volumes:
+        - name: models-pvc-offline
+          persistentVolumeClaim:
+            claimName: models-pvc-offline
+        - name: shm-offline
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
+      containers:
+        - name: vllm-ct-off
+          image: <image>:<version>
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VLLM_DO_NOT_TRACK
+              value: '1'
+            - name: VLLM_NO_USAGE_STATS
+              value: '1'
+            - name: MODEL_ID
+              value: <LLM_model>
+          args: 
+            - --model=$(MODEL_ID) 
+            - --gpu-memory-utilization=0.95
+          resources:
+            limits:
+              cpu: '6'
+              memory: 64Gi
+              nvidia.com/gpu: '1'
+            requests:
+              cpu: '1'
+              memory: 16Gi
+              nvidia.com/gpu: '1'
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: vllm-port-off
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: vllm-port-off
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 8
+            periodSeconds: 100
+            successThreshold: 1
+            failureThreshold: 10
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            privileged: true
+            runAsNonRoot: false
+            allowPrivilegeEscalation: true
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: vllm-port-off
+              containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - name: models-pvc-offline
+              mountPath: /root/.cache
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 300
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    values:
+                      - <gpu_model_name>
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
