@@ -1,0 +1,191 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: vllm
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: vllm-sv
+  namespace: vllm
+  labels:
+    app: vllm-sv  
+spec:
+  ports:
+    - name: vllm-port
+      protocol: TCP
+      port: 8080
+      targetPort: vllm-port
+  type: ClusterIP
+  selector:
+    app: vllm-sv
+
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: vllm-sa
+  namespace: vllm
+
+---
+kind: ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+metadata:
+  name: vllm-sm
+  namespace: vllm
+  labels:
+    k8s-app: vllm-sm
+spec:
+  endpoints:
+    - interval: 30s
+      port: vllm-port
+      scheme: http
+  selector:
+    matchLabels:
+      app: vllm-sv
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: models-pvc
+  namespace: vllm
+spec:
+  storageClassName: rook-cephfs
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hf-token-secret
+  namespace: vllm
+type: Opaque
+data:
+  token: <huggingface_token>
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: vllm-sv
+  namespace: vllm
+  labels:
+    app: vllm-sv
+    component: huggingface-vllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-sv
+      component: huggingface-vllm
+  template:
+    metadata:
+      labels:
+        app: vllm-sv
+        component: huggingface-vllm
+        placement: <gpu_model_name>
+    spec:
+      serviceAccountName: vllm-sa
+      volumes:
+        - name: models-pvc
+          persistentVolumeClaim:
+            claimName: models-pvc
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 8Gi
+      containers:
+        - name: vllm-container
+          image: vllm/vllm-openai:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token-secret
+                  key: token
+            - name: VLLM_DO_NOT_TRACK
+              value: '1'
+            - name: VLLM_NO_USAGE_STATS
+              value: '1'
+            - name: MODEL_ID
+              value: <LLM_model>
+            - name: GPU_MEMORY_UTILIZATION
+              value: '1'
+            - name: MAX_MODEL_LEN
+              value: '8192'
+          args: 
+            - --model=$(MODEL_ID)
+            - --gpu-memory-utilization=0.95
+            - --gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)
+            - --max-model-len=$(MAX_MODEL_LEN)
+          resources:
+            limits:
+              cpu: '6'
+              memory: 64Gi
+              nvidia.com/gpu: '1'
+            requests:
+              cpu: '1'
+              memory: 16Gi
+              nvidia.com/gpu: '1'
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: vllm-port
+              scheme: HTTP
+            initialDelaySeconds: 120
+            timeoutSeconds: 5
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: vllm-port
+              scheme: HTTP
+            initialDelaySeconds: 120
+            timeoutSeconds: 8
+            periodSeconds: 100
+            successThreshold: 1
+            failureThreshold: 10
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            privileged: true
+            runAsNonRoot: false
+            allowPrivilegeEscalation: true
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: vllm-port
+              containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - name: models-pvc
+              mountPath: /root/.cache
+          terminationMessagePolicy: File
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 120
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    values:
+                      - <gpu_model_name>
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
