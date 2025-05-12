@@ -198,7 +198,7 @@ If you already have an available image, skip over to Step 6.
     # YAML snippet. In the `spec: template: spec:`, add the following:
     containers:
       - name: some_name
-        image: image-registry.openshift-image-registry.svc:5000/<namespace>/<config_name>:latest
+        image: <image_name>:<version>
     ```
 
 ### <a id="grafana-prometheus">B. Grafana-Prometheus Setup</a>
